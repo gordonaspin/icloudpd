@@ -1,5 +1,6 @@
 build
 click>=6.7
+pyicloud @ git+https://github.com/timlaing/pyicloud.git
 python_dateutil==2.8.2
 requests>=2.20.0
 tqdm>=4.62.0

@@ -1,7 +1,7 @@
 FROM python:3.12-alpine
 
 #RUN set -xe
-RUN apk add tzdata bash vim
+RUN apk add tzdata bash vim git
 RUN python3 -m ensurepip
     #rm -r /usr/lib/python*/ensurepip && \
 RUN pip3 install --upgrade pip setuptools
@@ -13,14 +13,17 @@ ARG TZ="America/New_York"
 RUN cp /usr/share/zoneinfo/$TZ /etc/localtime
 
 ARG ICLOUDPD_VERSION
-ARG PYICLOUD_VERSION
+#ARG PYICLOUD_VERSION
 COPY dist/* /tmp/
+
+#  && pip install /tmp/pyicloud-${PYICLOUD_VERSION}-py3-none-any.whl \
 RUN set -xe \
   && pip install wheel==0.35.1 \
-  && pip install /tmp/pyicloud-${PYICLOUD_VERSION}-py3-none-any.whl \
   && pip install /tmp/icloudpd-${ICLOUDPD_VERSION}-py3-none-any.whl \
+  && pip install git+https://github.com/timlaing/pyicloud.git \
   && pip list \
-  && icloud -h | head -n1 \
+  && icloud -h \
+  && icloudpd -h \
   && date
 
 ENV TZ=${TZ}
