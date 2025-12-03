@@ -1,5 +1,6 @@
 import sqlite3 as sql
 import sys
+import os
 import traceback
 from datetime import datetime
 from logging import Handler
@@ -132,7 +133,7 @@ class DatabaseHandler(Handler):
                 photo.dimensions[0],
                 photo.dimensions[1],
                 photo.item_type,
-                photo.item_type_extension,
+                os.path.splitext(photo.filename)[1],
                 path,
                 md5,
                 album
@@ -149,7 +150,7 @@ class DatabaseHandler(Handler):
             d['x'] = photo.dimensions[0]
             d['y'] = photo.dimensions[1]
             d['item_type'] = photo.item_type
-            d['item_type_extension'] = photo.item_type_extension
+            d['item_type_extension'] = os.path.splitext(photo.filename)[1]
             d['path'] = path
             d['md5'] = md5
             d['album'] = album

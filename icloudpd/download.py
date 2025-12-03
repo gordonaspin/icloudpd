@@ -45,13 +45,14 @@ def download_media(icloud, photo, download_path, size):
 
     for retries in range(constants.DOWNLOAD_MEDIA_MAX_RETRIES):
         try:
-            photo_response = photo.download(size)
-            if photo_response:
+            photo_data = photo.download(size)
+            if photo_data:
                 temp_download_path = download_path + ".part"
                 with open(temp_download_path, "wb") as file_obj:
-                    for chunk in photo_response.iter_content(chunk_size=constants.DOWNLOAD_MEDIA_CHUNK_SIZE):
-                        if chunk:
-                            file_obj.write(chunk)
+                    file_obj.write(photo_data)
+                    #for chunk in photo_response.iter_content(chunk_size=constants.DOWNLOAD_MEDIA_CHUNK_SIZE):
+                    #    if chunk:
+                    #        file_obj.write(chunk)
                 os.rename(temp_download_path, download_path)
                 update_mtime(photo, download_path)
                 return True

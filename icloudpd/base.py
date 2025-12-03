@@ -20,6 +20,9 @@ from urllib3.exceptions import InsecureRequestWarning
 from pyicloud.exceptions import (PyiCloud2SARequiredException,
                                  PyiCloudAPIResponseException,
                                  PyiCloudFailedLoginException)
+
+from pyicloud.services.photos import SmartPhotoAlbum
+
 from tqdm import tqdm
 from tzlocal import get_localzone
 
@@ -353,14 +356,15 @@ def main(
         print(ex)
         sys.exit(constants.ExitCode.EXIT_FAILED_CLOUD_API.value)
 
-    albums = icloud.photos.albums.values()
+    albums = icloud.photos.albums
     logger.info(f"there are {len(photos)} assets in {len(albums)} albums in your library")
 
     album_titles = [str(a) for a in albums]
+    smart_album_titles = [str(a) for a in albums if  isinstance(a, SmartPhotoAlbum)]
     album_titles.sort(reverse = sort=='desc')
     if list_albums:
         if skip_smart_folders:
-            album_titles = [_ for _ in album_titles if _ not in icloud.photos.SMART_FOLDERS] #.keys()
+            album_titles = [_ for _ in album_titles if _ in smart_album_titles] #.keys()
         print(*album_titles, sep="\n")
         sys.exit(constants.ExitCode.EXIT_NORMAL.value)
 
@@ -584,7 +588,7 @@ def main(
         amd = {}
         amd['album_name'] = album
         amd['assets'] = []
-        photos = icloud.photos.albums[album]
+        photos = icloud.photos.albums.find(album)
         photos.exception_handler = photos_exception_handler
         photos_count = len(photos)
 
@@ -656,10 +660,10 @@ def main(
     if all_albums:
         if skip_all_photos:
             logger.info("removing All Photos from the list of albums to process")
-            album_titles = [album for album in album_titles if album != "All Photos"]
+            album_titles = [album for album in album_titles if album != "Library"]
         if skip_smart_folders:
             logger.info("removing smart folders from the list of albums to process")
-            album_titles = [album for album in album_titles if album not in icloud.photos.SMART_FOLDERS] #.keys()
+            album_titles = [album for album in album_titles if album not in smart_album_titles] #.keys()
     else:
         album_titles = [album]
 
