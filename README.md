@@ -9,10 +9,10 @@ This tool is forked from the original icloud_photos_downloader developed and mai
 
 ## Install
 
-`icloudpd` is a Python package that can be installed using `pip`, but it's borked as it only retrieves the first 200 albums in your iCloud library. Use my forked pyicloud implementation https://github.com/gordonaspin/pyicloud:
+`icloudpd` is a Python package that can be installed using `pip`, but it's borked as it only retrieves the first 200 albums in your iCloud library. Use the forked pyicloud implementation https://github.com/timlaing/pyicloud:
 
 ``` sh
-git clone https://github.com/gordonaspin/pyicloud
+git clone https://github.com/timlaing/pyicloud
 cd pyicloud
 pip install .
 ```
