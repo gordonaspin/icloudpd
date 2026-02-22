@@ -1,0 +1,43 @@
+[project]
+name = "icloudpd"
+version = "1.2.0"
+description = "icloudpd is a command-line tool to download your iCloud Photos"
+authors = [{ name = "Gordon Aspin", email = "gordon.aspin@gmail.com" }]
+dependencies = [
+    "click==8.3.1",
+    "python_dateutil==2.8.2",
+    "requests>=2.20.0",
+    "piexif==1.1.3",
+    "tzlocal",
+    "pyicloud @ git+https://github.com/gordonaspin/pyicloud.git",
+]
+requires-python = ">=3.14.2"
+readme = "README.md"
+license = "MIT"
+maintainers = [{ name = "Gordon Aspin", email="gordon.aspin@gmail.com" }]
+classifiers=[
+        "Intended Audience :: Developers",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+]
+[project.scripts]
+icloudpd = "icloudpd:main"
+
+[project.urls]
+Repository = "https://github.com/gordonaspin/icloudpd"
+
+[tool.pylint]
+# Disable specific messages by their symbolic name or ID.
+disable = [
+    "import-error",
+    "no-member",
+    "too-many-instance-attributes",
+    "too-many-arguments",
+    "too-many-positional-arguments",
+    "too-many-locals",
+    "no-value-for-parameter",
+    "too-few-public-methods",
+    "broad-exception-caught",
+]
+[tool.setuptools]
