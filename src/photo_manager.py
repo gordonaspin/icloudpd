@@ -144,9 +144,8 @@ class PhotoManager():
                     logger.info("%s: processed all assets more recent than %s",
                                     album, self.ctx.date_since)
                     break
-                else:
-                    future = tpe.submit(self.download_photo, album, photo)
-                    pending = pending | set([future])
+                future = tpe.submit(self.download_photo, album, photo)
+                pending = pending | set([future])
             while pending:
                 done, pending = as_completed(pending), set()
                 for future in done:
