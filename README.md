@@ -41,16 +41,13 @@ Options:
   --live-photo-size [original|medium|thumb]
                                   Live Photo video size to download (default:
                                   original)
-  --recent INTEGER RANGE          Number of recent photos to download
+  --recent INTEGER RANGE          Number of recent photos to download per album
                                   (default: download all photos)  [x>=0]
   --date-since [%Y-%m-%d|%Y-%m-%d-%H:%M:%S]
                                   Download only assets newer than date-since
   --newest                        Download only assets newer than newest asset
                                   date from local icloudpd.db. Will override
                                   --date-since value.
-  --until-found INTEGER RANGE     Download most recently added photos until we
-                                  find x number of previously downloaded
-                                  consecutive photos (default: download all
                                   photos)  [x>=0]
   -a, --album <album>             Album to download (default: All Photos)
   --all-albums                    Download all albums

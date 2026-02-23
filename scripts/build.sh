@@ -1,7 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-
-mkdir -p dist
 rm -f dist/*
+source .venv/bin/activate
+python -m pylint src
 python -m build
-#python3 setup.py bdist_wheel --universal

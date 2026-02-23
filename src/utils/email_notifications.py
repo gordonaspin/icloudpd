@@ -4,7 +4,7 @@ import smtplib
 import datetime
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("icloudpd")
 # pylint: disable-msg=too-many-arguments
 
 

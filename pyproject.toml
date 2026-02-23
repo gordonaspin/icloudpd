@@ -1,6 +1,6 @@
 [project]
 name = "icloudpd"
-version = "1.2.0"
+version = "1.2.1"
 description = "icloudpd is a command-line tool to download your iCloud Photos"
 authors = [{ name = "Gordon Aspin", email = "gordon.aspin@gmail.com" }]
 dependencies = [

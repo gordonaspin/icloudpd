@@ -1,38 +1,43 @@
-# This image is mainly used for development and testing
+FROM python:3.14-alpine AS base
 
-FROM python:3.9 as base
+# Install some useful utilities in image
+RUN apk add tzdata bash vim git
+RUN python -m pip install --upgrade pip
+RUN pip install --upgrade setuptools
+RUN pip install --upgrade build
 
-WORKDIR /app
-# explicit requirements because runtime does not need ALL dependencies
-COPY requirements-pip.txt .
-COPY requirements.txt .
-RUN pip3 install -r requirements-pip.txt
-RUN pip3 install -r requirements.txt
+# Set TZ to East Coast
+ARG TZ="America/New_York"
+RUN cp /usr/share/zoneinfo/$TZ /etc/localtime
 
-FROM base as common
-RUN apt-get update && apt-get install -y dos2unix
-RUN mkdir Photos
-COPY requirements*.txt ./
-COPY scripts/install_deps scripts/install_deps
-RUN dos2unix scripts/install_deps
-RUN scripts/install_deps
-COPY . .
-RUN dos2unix scripts/*
-ENV TZ="America/Los_Angeles"
+# Work in tmp, pull the repo and build it here
+WORKDIR /tmp
+ARG CACHE_BUST
+RUN git clone https://github.com/gordonaspin/icloudpd.git
+WORKDIR /tmp/icloudds
+RUN python -m build
 
-FROM common as test
+# Install the wheel, check commands work
+RUN pip install dist/*.whl
+RUN pip list -v
+RUN icloud -h
+RUN icloudpd -h
 
-RUN scripts/test
-RUN scripts/lint
+# Add the docker user
+ARG GROUP_NAME=docker
+ARG USER_NAME=docker
+ARG USER_UID=1000
+ARG GROUP_GID=1000
+# Create a group and a user, then add the user to the group
+RUN addgroup -g ${GROUP_GID} -S ${GROUP_NAME} && \
+    adduser -u ${USER_UID} -S -G ${GROUP_NAME} -D -H ${USER_NAME}
 
-FROM common as build
+# docker home, copy base config files and chown them to docker
+WORKDIR /home/docker
+RUN rm -rf /tmp/icloudds
 
-RUN scripts/build
+# Set the TZ, change user to docker, define entrypoint
+ENV TZ=${TZ}
+USER docker
+ENTRYPOINT [ "icloudpd", "-d", "/drive", "--cookie-directory", "/cookies" ]
 
-FROM python:3.9-alpine as runtime
-
-COPY --from=build /app/dist/* /tmp
-RUN pip3 install /tmp/*.whl
-
-# copy from test to ensure test stage runs before runtime stage in buildx
-COPY --from=test /app/.coverage .

@@ -1,7 +1,6 @@
 """Handles username/password authentication and two-step authentication"""
 import sys
 import logging
-from logging import Logger
 from typing import Any
 
 import click
@@ -15,7 +14,7 @@ from pyicloud.exceptions import (
 
 import constants
 
-logger: Logger = logging.getLogger(__name__)
+logger = logging.getLogger("icloudpd")
 
 def _handle_2fa(api: PyiCloudService) -> None:
     # fmt: off

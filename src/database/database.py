@@ -5,9 +5,9 @@ import os
 import traceback
 from datetime import datetime
 import logging
-from utils.misc import get_photo_metadata
+from meta_data import PhotoMetaData
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("icloudpd")
 
 def adapt_datetime(val):
     """adapt inside sqlite3 to make timestamps without .mmmmmm work"""
@@ -21,18 +21,6 @@ def setup_database(directory):
 class DatabaseHandler():
     """DB handler"""
     is_pruned = False
-
-#    def __new__(cls):
-#        if not hasattr(cls, 'instance'):
-#            cls.instance = super(DatabaseHandler, cls).__new__(cls)
-#            cls.instance.db_conn = sql.connect(
-#                DatabaseHandler.db_file,
-#                detect_types=sql.PARSE_DECLTYPES | sql.PARSE_COLNAMES)
-#            cls.instance.db_conn.row_factory = sql.Row
-#            cls.instance._create_log_table()
-#            cls.instance._create_photo_asset_table()
-#            cls.instance._prune_log_table()
-#        return cls.instance
 
     def __init__(self):
         self.db_conn = sql.connect(
@@ -130,7 +118,7 @@ class DatabaseHandler():
                 )
             )
             self.db_conn.commit()
-            return get_photo_metadata(photo, album, path, md5)
+            return PhotoMetaData(album, path, md5, photo, None)
 
         except sql.Error as er:
             self.print_error(er)
