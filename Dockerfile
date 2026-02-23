@@ -13,8 +13,10 @@ RUN cp /usr/share/zoneinfo/$TZ /etc/localtime
 # Work in tmp, pull the repo and build it here
 WORKDIR /tmp
 ARG CACHE_BUST
-RUN git clone https://github.com/gordonaspin/icloudpd.git
-WORKDIR /tmp/icloudds
+ARG OWNER
+ARG PROJECT
+RUN git clone ${OWNER}
+WORKDIR /tmp/${PROJECT}
 RUN python -m build
 
 # Install the wheel, check commands work
@@ -34,7 +36,7 @@ RUN addgroup -g ${GROUP_GID} -S ${GROUP_NAME} && \
 
 # docker home, copy base config files and chown them to docker
 WORKDIR /home/docker
-RUN rm -rf /tmp/icloudds
+RUN rm -rf /tmp/${PROJECT}
 
 # Set the TZ, change user to docker, define entrypoint
 ENV TZ=${TZ}

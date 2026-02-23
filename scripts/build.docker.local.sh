@@ -1,20 +1,21 @@
 #!/bin/bash
 set -euo pipefail
 
-REPO="gordonaspin"
+OWNER="gordonaspin"
 PROJECT=$(basename $(pwd))
 VERSION="$(cat pyproject.toml | grep version | cut -d'"' -f 2)"
 REMOTE_HASH=$(date +%Y%m%d%H%M%S)
-echo "Repo: ${REPO}"
+echo "Repo: ${OWNER}"
 echo "Project: ${PROJECT}"
 echo "Current ${PROJECT} version: ${VERSION}"
 echo "Hash: ${REMOTE_HASH}"
 
 docker build \
   --build-arg CACHE_BUST=${REMOTE_HASH} \
+  --build-arg PROJECT=${PROJECT} \
   --progress plain \
-  -t "${REPO}/${PROJECT}:${VERSION}" \
+  -t "${OWNER}/${PROJECT}:${VERSION}" \
   -f "Dockerfile.local" \
   .
 
-docker tag "${REPO}/${PROJECT}:${VERSION}" "${REPO}/${PROJECT}:latest"
+docker tag "${OWNER}/${PROJECT}:${VERSION}" "${OWNER}/${PROJECT}:latest"
