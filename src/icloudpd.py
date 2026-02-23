@@ -241,6 +241,10 @@ def main(
 
     directory = os.path.normpath(directory)
 
+    if date_since is not None:
+        date_since = date_since.astimezone(get_localzone())
+        logger.info("assets older than %s will be skipped (from date-since)", date_since)
+
     ctx: Context = Context(directory=directory, username=username, password=password,
                     cookie_directory=cookie_directory, size=size,
                     live_photo_size=live_photo_size, recent=recent, date_since=date_since,
@@ -289,7 +293,6 @@ def main(
     logger.debug("notification_script: %s", ctx.notification_script)
     logger.debug("unverified_https: %s", ctx.unverified_https)
 
-
     mdb = None
     if directory:
         database.setup_database(directory)
@@ -324,10 +327,6 @@ def main(
     newest_name = "unknown"
     logger.info("setting newest asset date to %s and newest asset name to %s",
                 newest_created, newest_name)
-
-    if date_since is not None:
-        date_since = date_since.astimezone(get_localzone())
-        logger.info("assets older than %s will be skipped (from date-since)", date_since)
 
     if newest:
         # (filename, created)

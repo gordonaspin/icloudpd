@@ -116,7 +116,7 @@ class PhotoManager():
     def download_album(self, album: str):
         """downloads an album"""
         amd = AlbumMetaData(album)
-
+        logger.info("processing album %s", album)
         photos = self.api.photos.albums.find(album)
         photos.exception_handler = self.photos_exception_handler
         photos_count = len(photos)
@@ -138,16 +138,21 @@ class PhotoManager():
         pending = set()
         with ThreadPoolExecutor() as tpe:
             for photo in iter(photos):
-                if reached_date_since:
+                created_date = self._created_date(album, photo)
+                if created_date < self.ctx.date_since:
+                    reached_date_since = True
                     logger.info("%s: processed all assets more recent than %s",
                                     album, self.ctx.date_since)
                     break
-                future = tpe.submit(self.download_photo, album, photo)
-                pending = pending | set([future])
+                else:
+                    future = tpe.submit(self.download_photo, album, photo)
+                    pending = pending | set([future])
             while pending:
                 done, pending = as_completed(pending), set()
                 for future in done:
-                    amd.assets.append(future.result())
+                    res = future.result()
+                    if res is not None:
+                        amd.assets.extend(future.result())
 
         if not reached_date_since:
             logger.info("%s: processed all assets", album)
@@ -155,11 +160,12 @@ class PhotoManager():
         return amd
 
     # pylint: disable=too-many-branches, too-many-statements
-    def download_photo(self, album, photo) -> PhotoMetaData | None:
+    def download_photo(self, album, photo) -> list[PhotoMetaData] | None:
         """internal function for actually downloading the photos"""
 
         pdb = database.DatabaseHandler()
         pmd = None
+        pmds = []
 
         if self.ctx.skip_videos and photo.item_type != "image":
             logger.info("%s: skipping %s, only downloading photos.",
@@ -191,13 +197,6 @@ class PhotoManager():
                 return None
             download_size = "original"
 
-        if self.ctx.date_since is not None:
-            if created_date < self.ctx.date_since:
-                logger.debug("%s: reached date since %s on %s dated %s",
-                                album, self.ctx.date_since, created_date,
-                                photo.filename.encode('utf-8').decode('ascii', 'ignore'))
-                return None
-
         download_path = self._local_download_path(photo, download_size, download_dir)
         short_path = self._short_path(download_path)
 
@@ -227,6 +226,7 @@ class PhotoManager():
                     md5 = pdb.get_asset_md5(short_path)
                 pmd = PhotoMetaData(album, short_path, md5, photo)
                 pmd.filesize = os.stat(download_path).st_size
+                pmds.append(pmd)
                 # Check for multiple occurrences of same asset in
                 # iCloud Photos library (happened with WhatsApp)
 
@@ -254,14 +254,15 @@ class PhotoManager():
                     md5 = self._calculate_md5(download_path)
                     pmd = PhotoMetaData(album, short_path, md5, photo)
                     pmd.filesize = os.stat(download_path).st_size
+                    pmds.append(pmd)
 
         # Also download the live photo if present
         if not self.ctx.skip_live_photos:
             pmd = self._download_live_photo(pdb, photo, album, download_dir)
+            if pmd:
+                pmds.append(pmd)
 
-        if pmd is None:
-            pass
-        return pmd
+        return pmds
 
     def _created_date(self, album, photo) -> datetime:
         try:
@@ -274,61 +275,62 @@ class PhotoManager():
         return created_date
 
     def _download_live_photo(self, pdb, photo, album, download_dir) -> PhotoMetaData:
-        lp_size = self.ctx.live_photo_size + "Video"
+        size = self.ctx.live_photo_size + "_video"
         created_date = self._created_date(album, photo)
 
-        if lp_size in photo.versions:
-            version = photo.versions[lp_size]
+        pmd = None
+
+        if size in photo.versions:
+            version = photo.versions[size]
             filename = version["filename"]
             if self.ctx.live_photo_size != "original":
                 # Add size to filename if not original
                 filename = filename.replace(".MOV", f"-{self.ctx.self.ctx.live_photo_size}.MOV")
-            lp_download_path = os.path.join(download_dir, filename)
-            lp_short_path = self._short_path(lp_download_path)
-            lp_file_exists = os.path.isfile(lp_download_path)
-            if self.ctx.only_print_filenames and not lp_file_exists:
-                print(lp_download_path)
-                pmd = PhotoMetaData(album, lp_short_path, -1, photo)
+            download_path = os.path.join(download_dir, filename)
+            short_path = self._short_path(download_path)
+            file_exists = os.path.isfile(download_path)
+            if self.ctx.only_print_filenames and not file_exists:
+                print(download_path)
+                pmd = PhotoMetaData(album, short_path, -1, photo)
             else:
-                if lp_file_exists:
-                    lp_file_size = os.stat(lp_download_path).st_size
-                    lp_photo_size = version["size"]
-                    if lp_file_size != lp_photo_size:
-                        lp_download_path = f"-{lp_photo_size}.".join(
-                            lp_download_path.rsplit(".", 1))
-                        logger.info("%s: deduplicated (live) %s file size %s"
+                if file_exists:
+                    file_size = os.stat(download_path).st_size
+                    photo_size = version["size"]
+                    if file_size != photo_size:
+                        download_path = f"-{photo_size}.".join(
+                            download_path.rsplit(".", 1))
+                        logger.info("%s: deduplicated live %s file size %s"
                                     " photo size %s dated %s",
                                     album,
                                     self._truncate_middle(
-                                        lp_short_path, 96),
-                                    lp_file_size, lp_photo_size, created_date)
-                        lp_file_exists = os.path.isfile(lp_download_path)
-                    if lp_file_exists:
-                        logger.info("%s: skipping (already exists) %s dated %s",
+                                        short_path, 96),
+                                    file_size, photo_size, created_date)
+                        file_exists = os.path.isfile(download_path)
+                    if file_exists:
+                        logger.info("%s: skipping live (already exists) %s dated %s",
                                     album,
                                     self._truncate_middle(
-                                        lp_short_path, 96),
+                                        short_path, 96),
                                     created_date)
-                        if not pdb.asset_exists(lp_short_path):
-                            md5 = self._calculate_md5(lp_download_path)
+                        if not pdb.asset_exists(short_path):
+                            md5 = self._calculate_md5(download_path)
                             logger.info("%s: updating %s md5 %s",
-                                        album, lp_download_path, md5)
+                                        album, download_path, md5)
                         else:
-                            md5 = pdb.get_asset_md5(lp_short_path)
+                            md5 = pdb.get_asset_md5(short_path)
 
-                        pmd = PhotoMetaData(album, lp_short_path, md5, photo)
-                        pmd.filesize = os.stat(lp_download_path).st_size
-                if not lp_file_exists:
-                    logger.info("%s: downloading %s dated %s",
+                        pmd = PhotoMetaData(album, short_path, md5, photo)
+                        pmd.filesize = os.stat(download_path).st_size
+                if not file_exists:
+                    logger.info("%s: downloading live %s dated %s",
                                 album,
-                                self._truncate_middle(lp_short_path, 96),
+                                self._truncate_middle(short_path, 96),
                                 created_date)
-                    self._download_media(photo, lp_download_path, lp_size)
-                    md5 = self._calculate_md5(lp_download_path)
+                    self._download_media(photo, download_path, size)
+                    md5 = self._calculate_md5(download_path)
 
-                    pmd = PhotoMetaData(album, lp_short_path, md5, photo)
+                    pmd = PhotoMetaData(album, short_path, md5, photo)
         return pmd
-
 
     def autodelete_photos(self):
         """
