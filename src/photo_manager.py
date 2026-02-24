@@ -139,7 +139,7 @@ class PhotoManager():
         with ThreadPoolExecutor() as tpe:
             for photo in iter(photos):
                 created_date = self._created_date(album, photo)
-                if created_date < self.ctx.date_since:
+                if self.ctx.date_since and (created_date < self.ctx.date_since):
                     reached_date_since = True
                     logger.info("%s: processed all assets more recent than %s",
                                     album, self.ctx.date_since)
