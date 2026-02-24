@@ -466,8 +466,8 @@ class PhotoManager():
                 else:
                     # you end up here when p.e. throttleing by Apple happens
                     wait_time = (retries + 1) * constants.DOWNLOAD_RETRY_WAIT_SECONDS
-                    logger.error("Error %s downloading %s, retrying after %d seconds...",
-                                ex, photo.filename, wait_time)
+                    logger.error("Error %s downloading %s to %s, retrying after %d seconds...",
+                                ex, photo.filename, download_path wait_time)
                     sleep(wait_time)
 
             except IOError:
