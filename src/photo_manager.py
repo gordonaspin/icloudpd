@@ -268,9 +268,9 @@ class PhotoManager():
         try:
             created_date = photo.created.astimezone(get_localzone())
         except (ValueError, OSError):
-            logger.error("could not convert photo %s "
-                                        "created date to local timezone (%s)",
-                                        photo.filename, photo.created)
+            logger.error("could not convert %s photo %s "
+                        "created date to local timezone (%s)",
+                        album, photo.filename, photo.created)
             created_date = photo.created
         return created_date
 
