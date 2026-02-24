@@ -36,6 +36,7 @@ RUN addgroup -g ${GROUP_GID} -S ${GROUP_NAME} && \
 
 # docker home, copy base config files and chown them to docker
 WORKDIR /home/docker
+RUN cp /tmp/${PROJECT}/logging-config.json .
 RUN rm -rf /tmp/${PROJECT}
 
 # Set the TZ, change user to docker, define entrypoint

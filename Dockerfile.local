@@ -33,6 +33,7 @@ RUN addgroup -g ${GROUP_GID} -S ${GROUP_NAME} && \
 
 # docker home
 WORKDIR /home/docker
+COPY logging-config.json .
 RUN rm -rf /tmp/*
 
 # Set the TZ, change user to docker, define entrypoint
