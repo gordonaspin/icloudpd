@@ -9,6 +9,7 @@ import itertools
 import hashlib
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Event
 
 from tzlocal import get_localzone
 import piexif
@@ -36,6 +37,8 @@ class PhotoManager():
         logger.info("fetching library information from iCloudService...")
         self.albums = self.api.photos.albums
         self.photos = self.api.photos.all
+        self.event = Event()
+        self.event.set()
         self.api.photos.exception_handler = self.photos_exception_handler
 
     def _connect(self) -> PhotosService:
@@ -439,6 +442,7 @@ class PhotoManager():
 
         for retries in range(constants.DOWNLOAD_MEDIA_MAX_RETRIES):
             try:
+                self.event.wait()
                 photo_data = photo.download(size)
                 if photo_data:
                     temp_download_path = download_path + ".part"
@@ -456,6 +460,7 @@ class PhotoManager():
             except (ConnectionError, socket.timeout, PyiCloudAPIResponseException) as ex:
                 if "Invalid global session" in str(ex):
                     logger.error("Session error, re-authenticating...")
+                    self.event.clear()
                     if retries > 0:
                         # If the first reauthentication attempt failed,
                         # start waiting a few seconds before retrying in case
@@ -468,6 +473,7 @@ class PhotoManager():
                     wait_time = (retries + 1) * constants.DOWNLOAD_RETRY_WAIT_SECONDS
                     logger.error("Error %s downloading %s to %s, retrying after %d seconds...",
                                 ex, photo.filename, download_path, wait_time)
+                    self.event.clear()
                     sleep(wait_time)
 
             except IOError:
@@ -478,6 +484,9 @@ class PhotoManager():
                     "Skipping this file...", download_path
                 )
                 break
+            finally:
+                self.event.set()
+
         else:
             logger.warning("Could not download %s! Please try again later.", photo.filename)
 
