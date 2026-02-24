@@ -167,13 +167,12 @@ class PhotoManager():
         pmds = []
 
         if self.ctx.skip_videos and photo.item_type != "image":
-            logger.info("%s: skipping %s, only downloading photos.",
-                                        album, photo.filename)
+            logger.info("skipping %s, only downloading photos.", photo.filename)
             return None
         if photo.item_type not in ["image", "movie"]:
-            logger.info("%s: skipping %s, only downloading"
-                                        " photos and videos. (Item type was: %s)",
-                                        album, photo.filename, photo.item_type)
+            logger.info("skipping %s, only downloading"
+                        " photos and videos. (Item type was: %s)",
+                        photo.filename, photo.item_type)
             return None
 
         created_date = self._created_date(album, photo)
@@ -191,8 +190,8 @@ class PhotoManager():
         if self.ctx.size not in versions and self.ctx.size != "original":
             if self.ctx.force_size:
                 filename = photo.filename.encode("utf-8").decode("ascii", "ignore")
-                logger.error("%s: %s size does not exist for %s. skipping...",
-                                            album, self.ctx.size, filename)
+                logger.error("skipping %s, %s size does not exist. skipping...",
+                                            filename, self.ctx.size)
                 return None
             download_size = "original"
 
@@ -209,18 +208,18 @@ class PhotoManager():
             if file_size != photo_size:
                 download_path = f"-{photo_size}.".join(download_path.rsplit(".", 1))
                 short_path = self._short_path(download_path)
-                logger.info("%s: deduplicated (size) %s file size %s photo size %s dated %s",
-                            album, self._truncate_middle(short_path, 96),
+                logger.info("deduplicated (size) %s file size %s photo size %s dated %s",
+                            self._truncate_middle(short_path, 96),
                             file_size, photo_size, created_date)
                 file_exists = os.path.isfile(download_path)
             if file_exists:
-                logger.info("%s: skipping (already exists) %s dated %s",
-                            album, self._truncate_middle(short_path, 96),
+                logger.info("skipping (already exists) %s dated %s",
+                            self._truncate_middle(short_path, 96),
                             created_date)
                 if not pdb.asset_exists(short_path):
                     md5 = self._calculate_md5(download_path)
-                    logger.info("%s: updating %s md5 %s",
-                                album, short_path, md5)
+                    logger.info("updating %s md5 %s",
+                                short_path, md5)
                 else:
                     md5 = pdb.get_asset_md5(short_path)
                 pmd = PhotoMetaData(album, short_path, md5, photo)
@@ -234,8 +233,7 @@ class PhotoManager():
                 print(download_path)
                 pmd = PhotoMetaData(album, short_path, -1, photo)
             else:
-                logger.info("%s: downloading %s dated %s",
-                            album,
+                logger.info("downloading %s dated %s",
                             self._truncate_middle(short_path, 96),
                             created_date)
                 download_result = self._download_media(photo, download_path, download_size)
@@ -245,8 +243,8 @@ class PhotoManager():
                         and not self._get_photo_exif(download_path)):
                         # %Y:%m:%d looks wrong but it's the correct format
                         date_str = created_date.strftime("%Y-%m-%d %H:%M:%S%z")
-                        logger.debug("%s: setting EXIF timestamp for : %s %s",
-                                        album, short_path, date_str)
+                        logger.debug("setting EXIF timestamp for : %s %s",
+                                        short_path, date_str)
                         self._set_photo_exif(download_path,
                                                         created_date.strftime("%Y:%m:%d %H:%M:%S"))
                     self._set_utime(download_path, created_date)
@@ -267,9 +265,9 @@ class PhotoManager():
         try:
             created_date = photo.created.astimezone(get_localzone())
         except (ValueError, OSError):
-            logger.error("%s: Could not convert photo %s "
+            logger.error("could not convert photo %s "
                                         "created date to local timezone (%s)",
-                                        album, photo.filename, photo.created)
+                                        photo.filename, photo.created)
             created_date = photo.created
         return created_date
 
@@ -298,16 +296,14 @@ class PhotoManager():
                     if file_size != photo_size:
                         download_path = f"-{photo_size}.".join(
                             download_path.rsplit(".", 1))
-                        logger.info("%s: deduplicated live %s file size %s"
+                        logger.info("deduplicated live %s file size %s"
                                     " photo size %s dated %s",
-                                    album,
                                     self._truncate_middle(
                                         short_path, 96),
                                     file_size, photo_size, created_date)
                         file_exists = os.path.isfile(download_path)
                     if file_exists:
-                        logger.info("%s: skipping live (already exists) %s dated %s",
-                                    album,
+                        logger.info("skipping live (already exists) %s dated %s",
                                     self._truncate_middle(
                                         short_path, 96),
                                     created_date)
@@ -321,8 +317,7 @@ class PhotoManager():
                         pmd = PhotoMetaData(album, short_path, md5, photo)
                         pmd.filesize = os.stat(download_path).st_size
                 if not file_exists:
-                    logger.info("%s: downloading live %s dated %s",
-                                album,
+                    logger.info("downloading live %s dated %s",
                                 self._truncate_middle(short_path, 96),
                                 created_date)
                     self._download_media(photo, download_path, size)
@@ -351,7 +346,7 @@ class PhotoManager():
                     self._local_download_path(
                         media, size, download_dir))
                 if os.path.exists(path):
-                    logger.info("Deleting %s!", path)
+                    logger.info("deleting %s!", path)
                     os.remove(path)
 
     def _build_download_dir(self, album, created_date, default_date):
