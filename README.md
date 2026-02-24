@@ -5,14 +5,21 @@
 - Run as a [scheduled cron task](#cron-task) to keep a local backup of your photos and videos
 - Run as a docker container, available directly from dockerhub at docker pull gordonaspin/icloudpd:latest
 
-This tool is forked from the original icloud_photos_downloader developed and maintained by volunteers. They are always looking for [help](CONTRIBUTING.md)...). I am happy to entertain feature requests on this fork. I aim to release new versions if there is something worth delivering.
+This tool is forked from the original icloud_photos_downloader developed and maintained by volunteers. They are always looking for [help](CONTRIBUTING.md)...). I am happy to entertain feature requests on this fork. I aim to release new versions if there is something worth delivering. I almost completely re-wrote the code as I have a large photo library and the single-threaded original approach was too slow. This version uses threadpools to work in parallel. Albums are worked on with a max of 8 work threads, each of which can download up to whatever the default max is on your machine as implemented by the ThreadPoolExecutor.
 
-## Install
+## Build and Install
+You can download the repository and build on your local machine
+```bash
+$ git clone https://github.com/gordonaspin/icloudpd.git
+$ cd icloudpd
+$ scripts/build.sh # creates the wheel in dist/
+$ scripts/install.sh # installs the wheel in dist/ to where your python environment is
+```
 
-`icloudpd` is a Python package that can be installed using `pip`, but it's borked as it only retrieves the first 200 albums in your iCloud library. Use the forked pyicloud implementation https://github.com/timlaing/pyicloud:
+`pyicloud` is a Python package that can be installed using `pip`, but it's borked as it only retrieves the first 200 albums in your iCloud library. Use the forked pyicloud implementation at https://github.com/gordonaspin/pyicloud.git or https://github.com/timlaing/pyicloud.git:
 
 ``` sh
-git clone https://github.com/timlaing/pyicloud
+git clone https://github.com/gordonaspin/pyicloud
 cd pyicloud
 pip install .
 ```
@@ -41,14 +48,12 @@ Options:
   --live-photo-size [original|medium|thumb]
                                   Live Photo video size to download (default:
                                   original)
-  --recent INTEGER RANGE          Number of recent photos to download per album
+  --recent INTEGER RANGE          Number of recent photos to download
                                   (default: download all photos)  [x>=0]
   --date-since [%Y-%m-%d|%Y-%m-%d-%H:%M:%S]
                                   Download only assets newer than date-since
-  --newest                        Download only assets newer than newest asset
-                                  date from local icloudpd.db. Will override
-                                  --date-since value.
-                                  photos)  [x>=0]
+  --newest                        Download assets newer than newest known.
+                                  Overrides --date-since value.
   -a, --album <album>             Album to download (default: All Photos)
   --all-albums                    Download all albums
   --skip-smart-folders            Exclude smart folders from listing or
@@ -65,14 +70,13 @@ Options:
                                   Download live photos)
   --force-size                    Only download the requested size (default:
                                   download original if size is not available)
-  --auto-delete                   Scans the "Recently Deleted" folder and
+  --auto-delete                   Scans the Recently Deleted folder and
                                   deletes any files found in there. (If you
                                   restore the photo in iCloud, it will be
                                   downloaded again.)
-  --only-print-filenames          Only prints the filenames of all files that
-                                  will be downloaded (not including files that
-                                  are already downloaded). (Does not download
-                                  or delete any files.)
+  --only-print-filenames          Only prints filenames that will be
+                                  downloaded (Does not download or delete any
+                                  files.)
   --folder-structure <folder_structure>
                                   Folder structure (default: {:%Y/%m/%d}). If
                                   set to 'none' all photos will just be placed
@@ -83,36 +87,31 @@ Options:
   --list-duplicates               List files that are duplicates by the file
                                   content md5 hash
   --create-json-listing           Creates a catalog.json file listing of the
-                                  albums/assets processed in folder specified
-                                  by directory option
-  --set-exif-datetime             Write the DateTimeOriginal exif tag from
-                                  file creation date, if it doesn't exist.
+                                  albums/assets processed in the folder
+                                  specified by directory option
+  --set-exif-datetime             Set DateTimeOriginal exif tag from file
+                                  creation date, if it doesn't exist.
   --smtp-username <smtp_username>
-                                  Your SMTP username, for sending email
-                                  notifications when two-step authentication
-                                  expires.
+                                  SMTP username for sending email when two-
+                                  step authentication expires.
   --smtp-password <smtp_password>
-                                  Your SMTP password, for sending email
-                                  notifications when two-step authentication
-                                  expires.
-  --smtp-host <smtp_host>         Your SMTP server host. Defaults to:
+                                  SMTP password for sending email when two-
+                                  step authentication expires.
+  --smtp-host <smtp_host>         SMTP server host. Defaults to:
                                   smtp.gmail.com
-  --smtp-port <smtp_port>         Your SMTP server port. Default: 587 (Gmail)
+  --smtp-port <smtp_port>         SMTP server port. Default: 587 (Gmail)
                                   [x>=0]
   --smtp-no-tls                   Pass this flag to disable TLS for SMTP (TLS
                                   is required for Gmail)
   --notification-email <notification_email>
-                                  Email address where you would like to
-                                  receive email notifications. Default: SMTP
-                                  username
+                                  Email address to receive email
+                                  notifications. Default: SMTP username
   --notification-script PATH      Runs an external script when two factor
                                   authentication expires. (path required:
                                   /path/to/my/script.sh)
-  --log-level [debug|info|error]  Log level (default: debug)
-  --no-progress-bar               Disables the one-line progress bar and
-                                  prints log messages on separate lines
-                                  (Progress bar is disabled by default if
-                                  there is no tty attached)
+  --logging-config <filename>     JSON logging config filename (default:
+                                  logging-config.json)  [default: logging-
+                                  config.json]
   --unverified-https              Overrides default https context with
                                   unverified https context
   --version                       Show the version and exit.
@@ -212,32 +211,6 @@ Bad Request (400)
 This error often happens because your account hasn't used the iCloud API before, so Apple's servers need to prepare some information about your photos. This process can take around 5-10 minutes, so please wait a few minutes and try again.
 
 If you are still seeing this message after 30 minutes, then please [open an issue on GitHub](https://github.com/icloud-photos-downloader/icloud_photos_downloader/issues/new) and post the script output.
-
-## Cron Task
-
-Follow these instructions to run `icloudpd` as a scheduled cron task.
-
-``` sh
-# Clone the git repo somewhere
-git clone https://github.com/gordonaspin/icloud_photos_downloader.git
-cd icloud_photos_downloader
-
-# Copy the example cron script
-cp cron_script.sh.example cron_script.sh
-```
-
-- Update `cron_script.sh` with your username, password, and other options
-
-- Edit your "crontab" with `crontab -e`, then add the following line:
-
-``` plain
-0 */6 * * * /path/to/icloud_photos_downloader/cron_script.sh
-```
-
-Now the script will run every 6 hours to download any new photos and videos.
-
-> If you provide SMTP credentials, the script will send an email notification
-> whenever two-step authentication expires.
 
 ## Docker
 

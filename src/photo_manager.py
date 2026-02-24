@@ -9,7 +9,7 @@ import itertools
 import hashlib
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from threading import Event
+from threading import Event, RLock
 
 from tzlocal import get_localzone
 import piexif
@@ -39,6 +39,7 @@ class PhotoManager():
         self.photos = self.api.photos.all
         self.event = Event()
         self.event.set()
+        self.print_lock: RLock = RLock()
         self.api.photos.exception_handler = self.photos_exception_handler
 
     def _connect(self) -> PhotosService:
@@ -121,7 +122,6 @@ class PhotoManager():
         amd = AlbumMetaData(album)
         logger.info("processing album %s", album)
         photos = self.api.photos.albums.find(album)
-        photos.exception_handler = self.photos_exception_handler
         photos_count = len(photos)
 
         # Optional: Only download the x most recent photos.
@@ -225,16 +225,19 @@ class PhotoManager():
                                 short_path, md5)
                 else:
                     md5 = pdb.get_asset_md5(short_path)
-                pmd = PhotoMetaData(album, short_path, md5, photo)
-                pmd.filesize = os.stat(download_path).st_size
-                pmds.append(pmd)
+                if not self.ctx.only_print_filenames:
+                    pmd = PhotoMetaData(album, short_path, md5, photo)
+                    pmd.filesize = os.stat(download_path).st_size
+                    pmds.append(pmd)
                 # Check for multiple occurrences of same asset in
                 # iCloud Photos library (happened with WhatsApp)
 
         if not file_exists:
             if self.ctx.only_print_filenames:
-                print(download_path)
+#                with self.print_lock:
+#                    print(download_path)
                 pmd = PhotoMetaData(album, short_path, -1, photo)
+                pmds.append(pmd)
             else:
                 logger.info("downloading %s dated %s",
                             self._truncate_middle(short_path, 96),
@@ -290,7 +293,8 @@ class PhotoManager():
             short_path = self._short_path(download_path)
             file_exists = os.path.isfile(download_path)
             if self.ctx.only_print_filenames and not file_exists:
-                print(download_path)
+#                with self.print_lock:
+#                    print(download_path)
                 pmd = PhotoMetaData(album, short_path, -1, photo)
             else:
                 if file_exists:

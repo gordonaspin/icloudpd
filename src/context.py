@@ -35,6 +35,6 @@ class Context():
     smtp_port: int
     smtp_no_tls: bool
     notification_email: str
-    log_level: str
     notification_script: str
+    logging_config: str
     unverified_https: bool

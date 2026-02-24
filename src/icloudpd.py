@@ -4,7 +4,6 @@ from __future__ import print_function
 from datetime import datetime
 import json
 import logging
-import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tzlocal import get_localzone
@@ -18,7 +17,7 @@ import constants
 from context import Context
 from database import database
 from photo_manager import PhotoManager
-from logger.logger import setup_logger
+from logger.logger import setup_logging
 
 logger = logging.getLogger("icloudpd")
 
@@ -32,36 +31,39 @@ def print_duplicates(duplicates):
         while True:
             try:
                 duplicate = next(duplicate_iter)
-                logger.info("there are %s duplicates with md5 %s and size %s:",
-                            duplicate['count'], duplicate['md5'], duplicate['size'])
+                print(f"there are {duplicate['count']} duplicates"
+                      " with md5 {duplicate['md5']} and size {duplicate['size']}:")
                 count = duplicate['count']
                 for i in range(0, count):
-                    logger.info("duplicate:%s: %s", duplicate['md5'], duplicate['path'])
+                    print(f"duplicate:{duplicate['md5']}: {duplicate['path']}")
                     if i < count - 1:
                         size = size + int(duplicate['size'])
                         duplicate = next(duplicate_iter)
 
             except StopIteration:
                 if size > 1024*1024*1024:
-                    logger.info("%.1f GB could be reclaimed", size/(1024*1024*1024))
+                    print(f"{size/(1024*1024*1024):.1f} GB could be reclaimed")
                 elif size > 1024*1024:
-                    logger.info("%.1f MB could be reclaimed", size/(1024*1024))
+                    print(f"{size/(1024*1024):.1f} MB could be reclaimed")
                 elif size > 1024:
-                    logger.info("%.1f KB could be reclaimed", size/(1024))
+                    print(f"{size/(1024):.1f} KB could be reclaimed")
                 else:
-                    logger.info("%d bytes could be reclaimed", size)
+                    print(f"{size} bytes could be reclaimed")
                 break
     else:
-        logger.info("there are no duplicates")
+        print("there are no duplicates")
 
 @click.command(
         context_settings={"help_option_names": ["-h", "--help"]},
-        options_metavar="<options>")
+        options_metavar="<options>",
+        no_args_is_help=True)
 @click.option("-d", "--directory",
+              required=True,
               help="Local directory that should be used for download",
               type=click.Path(exists=True),
               metavar="<directory>")
 @click.option("-u", "--username",
+              required=True,
               help="Your iCloud username or email address",
               metavar="<username>")
 @click.option("-p", "--password",
@@ -89,19 +91,18 @@ def print_duplicates(duplicates):
               help="Download assets newer than newest known. Overrides --date-since value.",
               is_flag=True)
 @click.option("-a", "--album",
-              help="Album to download (default: All Photos)",
+              help=f"Album to download (default: {SmartAlbumEnum.ALL_PHOTOS.value})",
               metavar="<album>",
-              default=SmartAlbumEnum.ALL_PHOTOS)
+              default=SmartAlbumEnum.ALL_PHOTOS.value)
 @click.option("--all-albums",
               help="Download all albums",
               is_flag=True)
 @click.option("--skip-smart-folders",
-              help="Exclude smart folders from listing or download: All Photos, Time-lapse, "\
-                   "Videos, Slo-mo, Bursts, Favorites, Panoramas, Screenshots, Live, "\
-                    "Recently Deleted, Hidden",
+              help="Exclude smart folders from listing or download: " +
+              f"{", ".join(i.value for i in SmartAlbumEnum)}",
               is_flag=True)
-@click.option("--skip-All-Photos",
-              help="Exclude the smart folders 'All Photos' from listing or download",
+@click.option("--skip-Library",
+              help=f"Exclude the smart folder {SmartAlbumEnum.ALL_PHOTOS.value} from listing or download",
               is_flag=True)
 @click.option("-l", "--list-albums",
               help="Lists the avaliable albums and exits",
@@ -170,10 +171,11 @@ def print_duplicates(duplicates):
               help="Runs an external script when two factor authentication expires. "\
               "(path required: /path/to/my/script.sh)",
               type=click.Path(), )
-@click.option("--log-level",
-              help="Log level (default: info)",
-              type=click.Choice(["debug", "info", "error"]),
-              default="info")
+@click.option("--logging-config",
+              help="JSON logging config filename (default: logging-config.json)",
+              metavar="<filename>",
+              default="logging-config.json",
+              show_default=True)
 @click.option("--unverified-https",
               help="Overrides default https context with unverified https context",
               is_flag=True)
@@ -195,7 +197,7 @@ def main(
         album,
         all_albums,
         skip_smart_folders,
-        skip_all_photos,
+        skip_library,
         list_albums,
         sort,
         skip_videos,
@@ -213,33 +215,14 @@ def main(
         smtp_port,
         smtp_no_tls,
         notification_email,
-        log_level,
         notification_script,
+        logging_config,
         unverified_https,
 ):
     """Download all iCloud photos to a local directory"""
 
     start = datetime.now()
-    setup_logger()
-
-    if only_print_filenames or list_albums:
-        if not log_level == "debug":
-            logger.disabled = True
-    else:
-        # Need to make sure disabled is reset to the correct value,
-        # because the logger instance is shared between tests.
-        logger.disabled = False
-        if log_level == "debug":
-            logger.setLevel(logging.DEBUG)
-            log_level = logging.DEBUG
-        elif log_level == "info":
-            logger.setLevel(logging.INFO)
-            log_level = logging.INFO
-        elif log_level == "error":
-            logger.setLevel(logging.ERROR)
-            log_level = logging.ERROR
-
-    directory = os.path.normpath(directory)
+    setup_logging(logging_config=logging_config)
 
     if date_since is not None:
         date_since = date_since.astimezone(get_localzone())
@@ -250,7 +233,7 @@ def main(
                     live_photo_size=live_photo_size, recent=recent, date_since=date_since,
                     newest=newest, album=album, all_albums=all_albums,
                     skip_smart_folders=skip_smart_folders,
-                    skip_all_photos=skip_all_photos, list_albums=list_albums, sort=sort,
+                    skip_all_photos=skip_library, list_albums=list_albums, sort=sort,
                     skip_videos=skip_videos, skip_live_photos=skip_live_photos,
                     force_size=force_size, auto_delete=auto_delete,
                     only_print_filenames=only_print_filenames, folder_structure=folder_structure,
@@ -258,7 +241,7 @@ def main(
                     set_exif_datetime=set_exif_datetime, smtp_username=smtp_username,
                     smtp_password=smtp_password, smtp_host=smtp_host, smtp_port=smtp_port,
                     smtp_no_tls=smtp_no_tls, notification_email=notification_email,
-                    log_level=log_level, notification_script=notification_script,
+                    notification_script=notification_script, logging_config=logging_config,
                     unverified_https=unverified_https)
 
     logger.debug("directory: %s", ctx.directory)
@@ -289,24 +272,28 @@ def main(
     logger.debug("smtp_port: %s", ctx.smtp_port)
     logger.debug("smtp_no_tls: %s", ctx.smtp_no_tls)
     logger.debug("notification_email: %s", ctx.notification_email)
-    logger.debug("log_level: %s", ctx.log_level)
     logger.debug("notification_script: %s", ctx.notification_script)
+    logger.debug("logging_config: %s", ctx.logging_config)
     logger.debug("unverified_https: %s", ctx.unverified_https)
 
     mdb = None
+
+    # check required directory param only if not list albums
+    if not (list_albums or only_print_filenames) and not directory:
+        print('--directory or --list-albums are required')
+        sys.exit(constants.ExitCode.EXIT_FAILED_MISSING_COMMAND.value)
+
     if directory:
         database.setup_database(directory)
         #setup_database_logger()
         mdb = database.DatabaseHandler()
 
-    # check required directory param only if not list albums
-    if not list_albums and not directory:
-        print('--directory or --list-albums are required')
-        sys.exit(constants.ExitCode.EXIT_FAILED_MISSING_COMMAND.value)
-
     if not username and directory and list_duplicates:
         print_duplicates(mdb.fetch_duplicates())
         sys.exit(constants.ExitCode.EXIT_NORMAL.value)
+
+    if list_albums or list_duplicates or only_print_filenames:
+        logger.disabled = True
 
     pm : PhotoManager = PhotoManager(ctx=ctx)
 
@@ -347,9 +334,9 @@ def main(
     cmd['date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     cmd['albums'] = {}
     if all_albums:
-        if skip_all_photos:
-            logger.info("removing All Photos from the list of albums to process")
-            album_titles = [_ for _ in album_titles if album != SmartAlbumEnum.ALL_PHOTOS]
+        if skip_library:
+            logger.info("removing %s from the list of albums to process", SmartAlbumEnum.ALL_PHOTOS.value)
+            album_titles = [a for a in album_titles if a != SmartAlbumEnum.ALL_PHOTOS.value]
         if skip_smart_folders:
             logger.info("removing smart folders from the list of albums to process")
             album_titles = [
@@ -378,15 +365,17 @@ def main(
             photo = pmd.photo
             path = pmd.path
             md5 = pmd.md5
+            if only_print_filenames:
+                print(path)
             if not mdb.asset_exists(path):
                 logger.info("upsert %s %s %s", album_name, path, md5)
                 mdb.upsert_asset(album_name, photo, path, md5)
-            delattr(pmd, 'photo')
+            delattr(pmd, 'photo') # remove so we can use json.dumps
 
     if auto_delete:
         pm.autodelete_photos()
 
-    if create_json_listing:
+    if create_json_listing and not only_print_filenames:
         json_file_path = directory + "/" + "catalog.json"
         logger.info("writing json listing to %s", json_file_path)
         with open(json_file_path, "w", encoding="utf-8") as jsonfile:

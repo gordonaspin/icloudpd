@@ -15,7 +15,7 @@ class PhotoMetaData():
         self.x = photo.dimensions[0] if photo else tup(6)
         self.y = photo.dimensions[1] if photo else tup(7)
         self.item_type = photo.item_type if photo else tup(8)
-        self.item_type_extension = os.path.splitext(self.filename)
+        self.item_type_extension = os.path.splitext(self.filename)[1][1:]
         self.path = path
         self.md5 = md5
         self.album = album
