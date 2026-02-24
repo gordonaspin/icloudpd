@@ -1,0 +1,86 @@
+{
+  "url": "https://github.com/mCodingLLC/VideosSampleCode/blob/master/videos/135_modern_logging/",
+  "version": 1,
+  "disable_existing_loggers": true,
+  "formatters": {
+    "production": {
+      "format": "%(asctime)s.%(msecs)03d %(levelname)s %(message)s",
+      "datefmt": "%Y-%m-%d %H:%M:%S"
+    },
+    "detailed": {
+      "format": "%(asctime)s.%(msecs)03d %(levelname)s\t%(name)s:%(module)s.%(funcName)s.%(lineno)d\t%(message)s",
+      "datefmt": "%Y-%m-%d %H:%M:%S"
+    },
+    "thread detailed": {
+      "format": "%(asctime)s.%(msecs)03d %(levelname)s\t%(threadName)s\t%(name)s:%(module)s.%(funcName)s.%(lineno)d\t%(message)s",
+      "datefmt": "%Y-%m-%d %H:%M:%S"
+    }
+  },
+  "filters": {
+    "KeywordFilter": {
+      "()": "logger.logger.KeywordFilter"
+    }
+  },
+  "handlers": {
+    "stderr": {
+      "class": "logging.StreamHandler",
+      "level": "INFO",
+      "formatter": "production",
+      "stream": "ext://sys.stderr",
+      "filters": ["KeywordFilter"]
+    },
+    "file": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "level": "DEBUG",
+      "formatter": "thread detailed",
+      "filename": "/var/log/icloudpd.log",
+      "maxBytes": 10000000,
+      "backupCount": 3,
+      "filters": ["KeywordFilter"]
+    }
+  },
+  "loggers": {
+    "unhandled": {
+      "level": "DEBUG",
+      "handlers": [
+        "stderr",
+        "file"
+      ]
+    },
+    "icloudpd": {
+      "level": "DEBUG",
+      "handlers": [
+        "stderr",
+        "file"
+      ]
+    },
+    "icloud": {
+      "level": "INFO",
+      "handlers": [
+        "stderr",
+        "file"
+      ]
+    },
+    "pyicloud": {
+      "level": "CRITICAL",
+      "handlers": [
+        "stderr",
+        "file"
+      ]
+    },
+    "keyring": {
+      "level": "CRITICAL",
+      "handlers": [
+        "stderr",
+        "file"
+      ]
+    },
+    "urllib3": {
+      "level": "CRITICAL",
+      "handlers": [
+        "stderr",
+        "file"
+      ]
+    }
+  }
+}
