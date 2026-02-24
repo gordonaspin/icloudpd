@@ -102,7 +102,8 @@ def print_duplicates(duplicates):
               f"{", ".join(i.value for i in SmartAlbumEnum)}",
               is_flag=True)
 @click.option("--skip-Library",
-              help=f"Exclude the smart folder {SmartAlbumEnum.ALL_PHOTOS.value} from listing or download",
+              help=f"Exclude the smart folder {SmartAlbumEnum.ALL_PHOTOS.value}"
+              " from listing or download",
               is_flag=True)
 @click.option("-l", "--list-albums",
               help="Lists the avaliable albums and exits",
@@ -335,7 +336,8 @@ def main(
     cmd['albums'] = {}
     if all_albums:
         if skip_library:
-            logger.info("removing %s from the list of albums to process", SmartAlbumEnum.ALL_PHOTOS.value)
+            logger.info("removing %s from the list of albums to process",
+                        SmartAlbumEnum.ALL_PHOTOS.value)
             album_titles = [a for a in album_titles if a != SmartAlbumEnum.ALL_PHOTOS.value]
         if skip_smart_folders:
             logger.info("removing smart folders from the list of albums to process")
