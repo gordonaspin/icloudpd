@@ -126,7 +126,7 @@ class MyJSONFormatter(logging.Formatter):
     def __init__(
         self,
         *,
-        fmt_keys: dict[str, str] | None = None) -> MyJSONFormatter:
+        fmt_keys: dict[str, str] | None = None):
         super().__init__()
         self.fmt_keys: dict[str, str] = fmt_keys if fmt_keys is not None else {}
 
@@ -189,7 +189,7 @@ class KeywordFilter(logging.Filter):
     asterisks of the same length when present in a log message.
     """
     _keywords = []
-    def __init__(self, name: str="KeywordFilter") -> KeywordFilter:
+    def __init__(self, name: str="KeywordFilter"):
         """Initialize the filter with an optional name (passed to base class)."""
         super().__init__(name)
 

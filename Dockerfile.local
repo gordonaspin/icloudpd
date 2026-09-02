@@ -19,7 +19,7 @@ COPY dist/*.whl .
 # Install the wheel, check commands work
 RUN pip install *.whl
 RUN pip list -v
-RUN icloud -h
+RUN icloud --help
 RUN icloudpd -h
 
 # Add the docker user

@@ -1,6 +1,7 @@
 build
-click>=6.7
-pyicloud @ git+https://github.com/timlaing/pyicloud.git
+click>=8.4.1
+pyicloud>=2.6.5
+pyicloudcli
 python_dateutil==2.8.2
 requests>=2.20.0
 piexif==1.1.3
