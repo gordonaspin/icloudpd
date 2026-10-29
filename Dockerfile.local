@@ -18,6 +18,7 @@ COPY dist/*.whl .
 
 # Install the wheel, check commands work
 RUN pip install *.whl
+RUN pip install secretstorage jeepney cryptography
 RUN pip list -v
 RUN icloud --help
 RUN icloudpd -h

@@ -21,8 +21,9 @@ RUN python -m build
 
 # Install the wheel, check commands work
 RUN pip install dist/*.whl
+RUN pip install secretstorage jeepney cryptography
 RUN pip list -v
-RUN icloud -h
+RUN icloud --help
 RUN icloudpd -h
 
 # Add the docker user
