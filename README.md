@@ -8,18 +8,8 @@
 This tool is forked from the original icloud_photos_downloader developed and maintained by volunteers. They are always looking for [help](CONTRIBUTING.md)...). I am happy to entertain feature requests on this fork. I aim to release new versions if there is something worth delivering. I almost completely re-wrote the code as I have a large photo library and the single-threaded original approach was too slow. This version uses threadpools to work in parallel. Albums are worked on with a max of 8 work threads, each of which can download up to whatever the default max is on your machine as implemented by the ThreadPoolExecutor.
 
 ## Build and Install
-You can download the repository and build on your local machine
-```bash
-$ git clone https://github.com/gordonaspin/icloudpd.git
-$ cd icloudpd
-$ scripts/build.sh # creates the wheel in dist/
-$ scripts/install.sh # installs the wheel in dist/ to where your python environment is
-```
-
-`pyicloud` is a Python package that can be installed using `pip`, but it's borked as it only retrieves the first 200 albums in your iCloud library. Use the forked pyicloud implementation at https://github.com/gordonaspin/pyicloud.git or https://github.com/timlaing/pyicloud.git:
-
 ``` sh
-git clone https://github.com/gordonaspin/pyicloud
+git clone https://github.com/timlaing/pyicloud
 cd pyicloud
 pip install .
 ```
