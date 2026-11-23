@@ -59,7 +59,7 @@ def setup_logging(logging_config: Path) -> Path:
 
     sys.excepthook = handle_unhandled_exception
     threading.excepthook = handle_thread_exception
-    logging.getLogger().info("logging configured")
+    logging.getLogger().info("logging configured at path: %s", folder_path)
 
     return folder_path
 

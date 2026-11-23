@@ -1,6 +1,13 @@
 {
   "url": "https://github.com/mCodingLLC/VideosSampleCode/blob/master/videos/135_modern_logging/",
   "version": 1,
+  "root": {
+    "level": "DEBUG",
+    "handlers": [
+      "stderr", 
+      "file"
+    ]
+  },
   "disable_existing_loggers": true,
   "formatters": {
     "production": {
